@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+import pandas as pd
 import json
 
 #from dotenv import load_dotenv  
@@ -17,39 +18,46 @@ client = OpenAI(api_key = OPENAI_API_KEY)
 #search = DuckDuckGoSearchRun()
 
 def gen_val_qa_pairs(topic, num_pairs):
-    questions = []
+    qa_pairs = []
 
     for _ in range(num_pairs):
-        # Générer une question et une réponse
-        prompt = f"""Create a very complex and challenging question and answer dataset 
-        in JSON about this topic: {topic}.
-        The purpose of this QA dataset is to fine-tune a large language model"""
-
-        chat_completion = client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",  # Remplacer par le modèle souhaité
-            #response_format={ "type": "json_object" },
-            messages=[{"role": "user", "content": prompt}]
+        # Générer une question
+        prompt_question = f"Generate a complex question about {topic}."
+        response_question = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt_question}]
         )
-        # Accéder correctement au contenu du message
-        if chat_completion.choices:
-            message = chat_completion.choices[0].message
-            if message.content:
-                qa_pair = message.content.strip()
-                questions.append(qa_pair)  # Ajouter la paire question-réponse générée
-            else:
-                questions.append("No content found in message.")
+        question = response_question.choices[0].message.content.strip()
 
-    return questions
+        # Générer une réponse à la question
+        prompt_answer = f"Answer the following question in detail: {question}"
+        response_answer = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt_answer}]
+        )
+        answer = response_answer.choices[0].message.content.strip()
 
+        qa_pairs.append({"question": question, "answer": answer})
 
+    return qa_pairs
+
+# Génération des paires question-réponse
 topic = "machine learning"
-qa_dataset = gen_val_qa_pairs(topic, 1)
-#(qa_dataset)
+qa_pairs = gen_val_qa_pairs(topic, 5)  # Générer 5 paires pour l'exemple
+
+# Conversion en DataFrame pandas
+qa_df = pd.DataFrame(qa_pairs)
+
+# Affichage du DataFrame
+print(qa_df)
+
+# Enregistrement du DataFrame dans un fichier CSV, si nécessaire
+#qa_df.to_csv('qa_dataset.csv', index=False)
 
 # Enregistrer le dataset dans un fichier JSON
-file_name = 'qa_dataset.json'
-with open(file_name, 'w', encoding='utf-8') as file:
-    json.dump(qa_dataset, file, ensure_ascii=False)
+#file_name = 'qa_dataset.json'
+#with open(file_name, 'w', encoding='utf-8') as file:
+#    json.dump(qa_dataset, file, ensure_ascii=False)
 
-print(f"Le dataset a été enregistré dans {file_name}.")
+#print(f"Le dataset a été enregistré dans {file_name}.")
 

@@ -108,3 +108,47 @@ topic = "machine learning"
 qa_dataset = gen_val_qa_pairs(topic, 500)
 
 
+#----------------------
+   # Accéder correctement au contenu du message
+        if chat_completion.choices:
+            message = chat_completion.choices[0].message
+            if message.content:
+                questions = message.content.strip('\n', 1)
+                questions.append(questions)  # Ajouter la paire question-réponse générée
+            else:
+                questions.append("No content found in message.")
+
+    return questions
+
+#---------
+
+def gen_val_qa_pairs(topic, num_pairs):
+    qa_pairs = []
+
+    for _ in range(num_pairs):
+        # Générer une question et une réponse
+        prompt = f"""Create a very complex and challenging question and answer dataset 
+        in JSON about this topic: {topic}.
+        The purpose of this QA dataset is to fine-tune a large language model"""
+
+        chat_completion = client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",  # Remplacer par le modèle souhaité
+            #response_format={ "type": "json_object" },
+            messages=[{"role": "user", "content": prompt}]
+        )
+        # Accéder correctement au contenu du message
+        if chat_completion.choices:
+            content = chat_completion.choices[0].message.content.strip()
+            question, answer = content.split('\n', 1)
+            qa_pairs.append({"question": question, "answer": answer})
+
+    return qa_pairs
+
+
+topic = "machine learning"
+qa_dataset = gen_val_qa_pairs(topic, 1)
+
+df = pd.DataFrame(qa_dataset)
+
+print(df)
+
